@@ -8,7 +8,6 @@ use Illuminate\Routing\Controller;
 use Illuminate\View\View;
 use KernelBridge\LicensingClient\Exceptions\KernelBridgeApiException;
 use KernelBridge\LicensingClient\Exceptions\KernelBridgeUnavailableException;
-use KernelBridge\LicensingClient\Services\DeploymentProfile as DeploymentProfileService;
 use KernelBridge\LicensingClient\Services\LicenseActivationService;
 use KernelBridge\LicensingClient\Services\LicenseCacheService;
 use KernelBridge\LicensingClient\Services\LicenseVerificationService;
@@ -78,13 +77,6 @@ final class LicenseController extends Controller
         }
 
         return redirect()->route($this->routeName('show'))->with('kernelbridge_license_status', 'License deactivated successfully.');
-    }
-
-    public function reprovision(DeploymentProfileService $profile): RedirectResponse
-    {
-        $profile->persist();
-
-        return redirect()->route($this->routeName('show'))->with('kernelbridge_license_status', 'Deployment profile re-provisioned successfully.');
     }
 
     private function friendlyError(KernelBridgeApiException|KernelBridgeUnavailableException $exception): string

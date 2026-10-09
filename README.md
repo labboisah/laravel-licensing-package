@@ -9,11 +9,11 @@ The package is designed to prevent silent license drift and environment-based fa
 Key rules:
 
 - Local configuration is treated as bootstrap input, not as a trusted runtime authority.
-- A persisted deployment profile stored in the product database acts as the trusted deployment identity.
+- A persisted deployment profile stored in the product database records the expected deployment configuration.
 - Sensitive system settings are fingerprinted and compared on activation and verification.
 - A mismatch is fail-closed: the package blocks access until the operator intentionally re-provisions the deployment profile.
 
-This protects against accidental local changes, copied databases, and insecure fallback logic that could otherwise weaken a customer deployment.
+This detects configuration drift and prevents silent fallback. It is not hardware attestation or protection against a hostile administrator who controls the application files and database; the product server remains customer-controlled.
 
 ## Installation from GitHub
 
@@ -23,7 +23,7 @@ This package is hosted in the public GitHub repository `labboisah/laravel-licens
 
 ```bash
 composer config repositories.kernelbridge vcs https://github.com/labboisah/laravel-licensing-package.git
-composer require kernelbridge/licensing-client-laravel:^1.2
+composer require kernelbridge/licensing-client-laravel:^1.2.1
 ```
 
 The repository root contains the package `composer.json`, so client apps do not need a sibling KernelBridge checkout to install the package. Commit both `composer.json` and `composer.lock` to the client app so all environments install the same tag and version.
@@ -121,16 +121,16 @@ This is useful when the client app needs custom route-level enforcement instead 
 
 ## Deployment profile and fail-closed validation
 
-The package now records a deployment profile that includes the product code, deployment mode, API URL, hashed machine token, and a signed fingerprint of the active licensing configuration.
+The package records a deployment profile that includes the product code, deployment mode, API URL, hashes of the machine token and signing key, and a SHA-256 fingerprint of the active licensing configuration. License entitlements remain separately signed in the local license cache.
 
 During activation and verification, the package checks:
 
 - the current config matches the persisted deployment profile
 - required values are present and not empty
 - the local signed state is valid
-- the runtime config still matches the trusted deployment identity
+- the runtime config still matches the persisted deployment fingerprint
 
-If the config changes after activation, the runtime fails closed with `configuration_tampered` and asks for re-activation. This is intentional and prevents a local environment from silently weakening a deployment.
+If the config changes after activation, the runtime fails closed with `configuration_tampered` and asks for re-activation. The DB profile is a consistency baseline, not a cryptographic trust anchor against an operator who can modify both the application and its database.
 
 ## Intentional re-provisioning
 
@@ -139,20 +139,12 @@ When a deployment genuinely changes, the operator can intentionally rotate the t
 ### Artisan command
 
 ```bash
-php artisan kernelbridge:reprovision-profile --force
+php artisan kernelbridge:reprovision-profile
 ```
 
-This persists the current deployment identity and clears the need for a risky manual database edit.
+The command asks for confirmation before replacing an existing profile, with the prompt defaulting to no. Add `--force` only for a controlled, non-interactive deployment operation. The command first validates the required client settings and then persists the current deployment fingerprint. It is CLI-only by default so profile replacement is not exposed to unauthenticated web requests.
 
-### UI option
-
-If the client app wants a visible operator action, enable:
-
-```dotenv
-KERNELBRIDGE_LICENSE_SHOW_REPROVISION_BUTTON=true
-```
-
-The activation page then offers a “Re-provision deployment profile” action. This is explicit, visible, and auditable rather than silent config drift.
+Client apps that require a web-based control must implement their own authenticated, administrator-authorized action and must not expose the package profile update directly to public users.
 
 ## Activation and verification
 

@@ -76,19 +76,10 @@ final class DeploymentProfile
 
     public function assertReady(): void
     {
+        $this->assertConfigurationComplete();
+
         if ($this->mode() === 'standalone') {
             return;
-        }
-
-        $missing = array_filter([
-            'api_url' => $this->apiUrl(),
-            'api_token' => $this->apiToken(),
-            'product_code' => $this->productCode(),
-            'signature_key' => $this->signatureKey(),
-        ], static fn ($value): bool => $value === '' || $value === null);
-
-        if ($missing !== []) {
-            throw new \LogicException('KernelBridge licensing deployment profile is incomplete; configure a valid client deployment profile before activation.');
         }
 
         $profile = DeploymentProfileRecord::query()->where('product_code', $this->productCode())->latest()->first();
@@ -102,7 +93,25 @@ final class DeploymentProfile
         }
 
         if ($profile->fingerprint !== $this->fingerprint()) {
-            throw new \LogicException('KernelBridge licensing deployment profile mismatch. The deployment record does not match the active configuration. Re-provision or restore the signed client profile.');
+            throw new \LogicException('KernelBridge licensing deployment profile mismatch. The deployment record does not match the active configuration. Re-provision or restore the persisted deployment profile.');
+        }
+    }
+
+    public function assertConfigurationComplete(): void
+    {
+        if ($this->mode() === 'standalone') {
+            return;
+        }
+
+        $missing = array_filter([
+            'api_url' => $this->apiUrl(),
+            'api_token' => $this->apiToken(),
+            'product_code' => $this->productCode(),
+            'signature_key' => $this->signatureKey(),
+        ], static fn ($value): bool => $value === '' || $value === null);
+
+        if ($missing !== []) {
+            throw new \LogicException('KernelBridge licensing deployment profile is incomplete; configure a valid client deployment profile before activation.');
         }
     }
 

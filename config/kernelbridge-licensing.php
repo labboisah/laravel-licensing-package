@@ -28,7 +28,6 @@ return [
         'prefix' => env('KERNELBRIDGE_LICENSE_ROUTE_PREFIX', 'license'),
         'name' => env('KERNELBRIDGE_LICENSE_ROUTE_NAME', 'kernelbridge.license.'),
         'middleware' => ['web'],
-        'reprovision_middleware' => ['web'],
     ],
 
     'ui' => [
@@ -37,7 +36,6 @@ return [
         'logo_alt' => env('KERNELBRIDGE_LICENSE_LOGO_ALT'),
         'css_path' => env('KERNELBRIDGE_LICENSE_CSS_PATH', 'vendor/kernelbridge-licensing/activation.css'),
         'show_logo' => (bool) env('KERNELBRIDGE_LICENSE_SHOW_LOGO', true),
-        'show_reprovision_button' => (bool) env('KERNELBRIDGE_LICENSE_SHOW_REPROVISION_BUTTON', false),
         'brand_name' => env('KERNELBRIDGE_LICENSE_BRAND_NAME'),
         'brand_subtitle' => env('KERNELBRIDGE_LICENSE_BRAND_SUBTITLE'),
         'heading' => env('KERNELBRIDGE_LICENSE_HEADING'),

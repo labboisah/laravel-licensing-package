@@ -11,7 +11,6 @@
     $baseRouteName = (string) (config('kernelbridge-licensing.redirects.activation_route') ?: (config('kernelbridge-licensing.routes.name', 'kernelbridge.license.') . 'show'));
     $licenseActivateRoute = str_ends_with($baseRouteName, '.show') ? substr($baseRouteName, 0, -5).'.activate' : $baseRouteName.'.activate';
     $licenseVerifyRoute = str_ends_with($baseRouteName, '.show') ? substr($baseRouteName, 0, -5).'.verify' : $baseRouteName.'.verify';
-    $licenseReprovisionRoute = str_ends_with($baseRouteName, '.show') ? substr($baseRouteName, 0, -5).'.reprovision' : $baseRouteName.'.reprovision';
     $licenseDeactivateRoute = str_ends_with($baseRouteName, '.show') ? substr($baseRouteName, 0, -5).'.deactivate' : $baseRouteName.'.deactivate';
 @endphp
 <html lang="en">
@@ -94,9 +93,6 @@
                     <div class="field"><label>Product</label><input value="{{ $brandName }}" readonly></div>
                     <div class="field"><label>License status</label><input value="{{ ucfirst($state->status) }}" readonly></div>
                     <form method="POST" action="{{ route($licenseVerifyRoute) }}">@csrf<button class="submit" type="submit">Verify this installation</button></form>
-                    @if (config('kernelbridge-licensing.ui.show_reprovision_button', false))
-                        <form method="POST" action="{{ route($licenseReprovisionRoute) }}">@csrf<button class="submit" type="submit" style="background:#0d6d5d; margin-top: 10px;">Re-provision deployment profile</button></form>
-                    @endif
                     <form method="POST" action="{{ route($licenseDeactivateRoute) }}">@csrf @method('delete')<button class="submit" type="submit" style="background:#9a302d">Deactivate licence</button></form>
                 @else
                     <form method="POST" action="{{ route($licenseActivateRoute) }}">

@@ -13,6 +13,8 @@ final readonly class LicenseVerificationService
 
     public function verify(bool $force = false): LicenseState
     {
+        app(DeploymentProfile::class)->assertReady();
+
         $state = $this->cache->state();
         if (! $force && $state->last_successful_verification_at?->gt(now()->subMinutes((int) config('kernelbridge-licensing.verification_interval_minutes', 15))) && $this->cache->hasUsableLicense()) {
             return $state;

@@ -10,5 +10,8 @@ Route::middleware(config('kernelbridge-licensing.routes.middleware', ['web']))
         Route::get('/', [LicenseController::class, 'show'])->name('show');
         Route::post('/', [LicenseController::class, 'activate'])->middleware('throttle:5,1')->name('activate');
         Route::post('/verify', [LicenseController::class, 'verify'])->middleware('throttle:10,1')->name('verify');
+        Route::post('/reprovision', [LicenseController::class, 'reprovision'])
+            ->middleware(config('kernelbridge-licensing.routes.reprovision_middleware', ['web']))
+            ->name('reprovision');
         Route::delete('/', [LicenseController::class, 'deactivate'])->middleware('throttle:5,1')->name('deactivate');
     });

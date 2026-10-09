@@ -11,6 +11,8 @@ final readonly class LicenseActivationService
 
     public function activate(string $licenseKey, ?string $deviceName = null, ?string $platformUrl = null): LicenseState
     {
+        app(DeploymentProfile::class)->assertReady();
+
         $installation = $this->cache->state()->installation_identifier;
         $license = $this->client->activate($licenseKey, $installation, $deviceName ?? config('app.name'), $platformUrl);
         $subscription = $license['subscription'] ?? $this->client->getSubscription($license['subscription_uuid']);

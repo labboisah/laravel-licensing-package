@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'deployment' => [
+        'mode' => env('KERNELBRIDGE_DEPLOYMENT_MODE', env('APP_MODE', 'client')),
+        'allow_local_fallback' => (bool) env('KERNELBRIDGE_ALLOW_LOCAL_FALLBACK', false),
+        'strict_profile' => (bool) env('KERNELBRIDGE_STRICT_DEPLOYMENT_PROFILE', true),
+    ],
     'api_url' => env('KERNELBRIDGE_API_URL', 'https://kernelbridge.com/api/v1'),
     'product_code' => env('KERNELBRIDGE_PRODUCT_CODE'),
     'api_token' => env('KERNELBRIDGE_API_TOKEN'),
@@ -23,6 +28,7 @@ return [
         'prefix' => env('KERNELBRIDGE_LICENSE_ROUTE_PREFIX', 'license'),
         'name' => env('KERNELBRIDGE_LICENSE_ROUTE_NAME', 'kernelbridge.license.'),
         'middleware' => ['web'],
+        'reprovision_middleware' => ['web'],
     ],
 
     'ui' => [
@@ -31,6 +37,7 @@ return [
         'logo_alt' => env('KERNELBRIDGE_LICENSE_LOGO_ALT'),
         'css_path' => env('KERNELBRIDGE_LICENSE_CSS_PATH', 'vendor/kernelbridge-licensing/activation.css'),
         'show_logo' => (bool) env('KERNELBRIDGE_LICENSE_SHOW_LOGO', true),
+        'show_reprovision_button' => (bool) env('KERNELBRIDGE_LICENSE_SHOW_REPROVISION_BUTTON', false),
         'brand_name' => env('KERNELBRIDGE_LICENSE_BRAND_NAME'),
         'brand_subtitle' => env('KERNELBRIDGE_LICENSE_BRAND_SUBTITLE'),
         'heading' => env('KERNELBRIDGE_LICENSE_HEADING'),

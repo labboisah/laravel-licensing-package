@@ -6,11 +6,13 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use KernelBridge\LicensingClient\Console\ReprovisionDeploymentProfileCommand;
 use KernelBridge\LicensingClient\Console\ResetLicenseCacheCommand;
 use KernelBridge\LicensingClient\Http\Middleware\FeatureMiddleware;
 use KernelBridge\LicensingClient\Http\Middleware\LicenseMiddleware;
 use KernelBridge\LicensingClient\Http\Middleware\LimitMiddleware;
 use KernelBridge\LicensingClient\Jobs\VerifyLicenseJob;
+use KernelBridge\LicensingClient\Services\DeploymentProfile;
 use KernelBridge\LicensingClient\Services\DeviceIdentity;
 
 final class KernelBridgeLicensingServiceProvider extends ServiceProvider
@@ -20,6 +22,7 @@ final class KernelBridgeLicensingServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/kernelbridge-licensing.php', 'kernelbridge-licensing');
         $this->app->singleton(KernelBridgeLicenseClient::class);
         $this->app->singleton(DeviceIdentity::class);
+        $this->app->singleton(DeploymentProfile::class);
     }
 
     public function boot(Router $router): void
@@ -51,6 +54,7 @@ final class KernelBridgeLicensingServiceProvider extends ServiceProvider
 
         $this->commands([
             ResetLicenseCacheCommand::class,
+            ReprovisionDeploymentProfileCommand::class,
         ]);
 
         $this->app->booted(function (): void {

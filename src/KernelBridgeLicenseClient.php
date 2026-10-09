@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use KernelBridge\LicensingClient\Exceptions\KernelBridgeApiException;
 use KernelBridge\LicensingClient\Exceptions\KernelBridgeUnavailableException;
+use KernelBridge\LicensingClient\Services\DeploymentProfile;
 use KernelBridge\LicensingClient\Services\DeviceIdentity;
 
 final class KernelBridgeLicenseClient
@@ -63,15 +64,15 @@ final class KernelBridgeLicenseClient
 
     private function http(): PendingRequest
     {
-        $url = rtrim((string) config('kernelbridge-licensing.api_url'), '/');
-        $token = (string) config('kernelbridge-licensing.api_token');
-        $code = (string) config('kernelbridge-licensing.product_code');
-        if ($url === '' || $token === '' || $code === '') {
-            throw new \LogicException('KernelBridge licensing configuration is incomplete.');
-        }
+        $profile = app(DeploymentProfile::class);
+        $profile->assertReady();
+
+        $url = rtrim($profile->apiUrl(), '/');
+        $token = $profile->apiToken();
+        $code = $profile->productCode();
 
         return Http::baseUrl($url)->withoutRedirecting()->withToken($token)->acceptJson()->asJson()
-            ->withHeaders(['X-KernelBridge-Product' => strtoupper($code)])
+            ->withHeaders(['X-KernelBridge-Product' => $code])
             ->connectTimeout((int) config('kernelbridge-licensing.connect_timeout_seconds', 3))
             ->timeout((int) config('kernelbridge-licensing.timeout_seconds', 10));
     }

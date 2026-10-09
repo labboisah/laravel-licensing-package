@@ -12,7 +12,8 @@ final class LicenseCacheService
 {
     public function state(): LicenseState
     {
-        $productCode = strtoupper((string) config('kernelbridge-licensing.product_code'));
+        $profile = app(DeploymentProfile::class);
+        $productCode = $profile->productCode();
         if ($productCode === '') {
             throw new \LogicException('KERNELBRIDGE_PRODUCT_CODE is required.');
         }
@@ -35,6 +36,8 @@ final class LicenseCacheService
             }
             $payload = [
                 'version' => 2,
+                'revision' => $this->revisionFor($license, $subscription, $entitlements, $verifiedAt),
+                'effective_at' => $verifiedAt->toISOString(),
                 'machine_fingerprint' => app(DeviceIdentity::class)->fingerprint(),
                 'product_code' => $state->product_code,
                 'license_identifier' => $license['license_uuid'],
@@ -110,6 +113,32 @@ final class LicenseCacheService
         }
 
         return $this->state()->entitlement_payload['features'][$feature]['limit'] ?? null;
+    }
+
+    public function status(): array
+    {
+        $state = $this->state();
+        $payload = is_array($state->entitlement_payload) ? $state->entitlement_payload : [];
+        $active = $this->hasUsableLicense();
+        $reason = $active ? 'active' : $this->activationRequirementReason();
+
+        return [
+            'active' => $active,
+            'status' => $state->status ?? 'unlicensed',
+            'reason' => $reason,
+            'message' => $active ? 'License is active and verified.' : $this->activationRequirementMessage(),
+            'product_code' => $state->product_code,
+            'package' => $payload['primary_package'] ?? data_get($payload, 'subscription.primary_package') ?? null,
+            'packages' => $payload['selected_packages'] ?? data_get($payload, 'subscription.selected_packages') ?? [],
+            'features' => $payload['features'] ?? [],
+            'expires_at' => $state->expires_at?->toIso8601String(),
+            'last_verification_at' => $state->last_successful_verification_at?->toIso8601String(),
+            'offline_grace_expires_at' => $state->offline_grace_expires_at?->toIso8601String(),
+            'effective_at' => $payload['effective_at'] ?? null,
+            'revision' => $payload['revision'] ?? null,
+            'renewal_notice' => $this->renewalNotice(),
+            'last_error_code' => $state->last_error_code,
+        ];
     }
 
     public function renewalNoticeLevel(): ?string
@@ -262,12 +291,15 @@ final class LicenseCacheService
 
     private function configFingerprint(): string
     {
+        $profile = app(DeploymentProfile::class);
         $payload = [
-            'api_url' => (string) config('kernelbridge-licensing.api_url'),
-            'product_code' => strtoupper((string) config('kernelbridge-licensing.product_code')),
-            'api_token_hash' => hash('sha256', (string) config('kernelbridge-licensing.api_token')),
+            'mode' => $profile->mode(),
+            'deployment_fingerprint' => $profile->fingerprint(),
+            'api_url' => $profile->apiUrl(),
+            'product_code' => $profile->productCode(),
+            'api_token_hash' => hash('sha256', $profile->apiToken()),
             'app_key_hash' => hash('sha256', (string) config('app.key')),
-            'signature_key_hash' => hash('sha256', (string) config('kernelbridge-licensing.signature_key')),
+            'signature_key_hash' => hash('sha256', $profile->signatureKey()),
         ];
 
         return $this->sign($payload);
@@ -281,6 +313,25 @@ final class LicenseCacheService
         }
 
         return Carbon::parse($value);
+    }
+
+    private function revisionFor(array $license, array $subscription, array $entitlements, Carbon $verifiedAt): string
+    {
+        $seed = [
+            'license_uuid' => $license['license_uuid'] ?? null,
+            'subscription_uuid' => $license['subscription_uuid'] ?? null,
+            'status' => $subscription['status'] ?? $license['status'] ?? 'inactive',
+            'expires_at' => $this->expiry($license, $subscription)?->toISOString(),
+            'verified_at' => $verifiedAt->toISOString(),
+            'configuration' => $license['configuration'] ?? $subscription['configuration'] ?? [],
+            'entitlements' => collect($entitlements['entitlements'] ?? [])->map(fn (array $item): array => [
+                'key' => (string) ($item['key'] ?? ''),
+                'enabled' => (bool) ($item['enabled'] ?? false),
+                'limit' => $item['limit'] ?? null,
+            ])->values()->all(),
+        ];
+
+        return hash('sha256', json_encode($this->canonical($seed), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
     }
 
     private function sign(array $payload): string
